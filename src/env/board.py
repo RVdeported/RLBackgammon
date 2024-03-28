@@ -95,11 +95,12 @@ class Board:
         return self.points[start].count > 0 and self.points[start].color == color
     
     def make_move(self, color:bool, start:int, dice:int):
+        if start == -2:
+            return
+        
         src  = self.points[start]
         dest = self.points[start - dice if color else start + dice]
 
-        # assert(src.count > 0)
-        # assert(src.color == color)
 
         # check we are dealing with bar checker
         if start == -1:
@@ -107,6 +108,8 @@ class Board:
             self.bar[int(color)] -= 1
             dest = self.points[24 - dice if color else dice - 1]
         else:
+            assert(src.count > 0)
+            assert(src.color == color)
             src.remove_checker()
             
         to_bar = dest.place_checker(color)
@@ -118,7 +121,7 @@ class Board:
         return int(np.random.random() * dice_max) + 1
     
     def print_board(self):
-        print_point = lambda x: print(f"{"+" if x.color else "-"}{x.count}\t", end="") 
+        print_point = lambda x: print(f"{'+' if x.color else '-'}{x.count}\t", end="") 
         for i in range(6):
             point = self.points[12+i]
             print_point(point)
@@ -149,17 +152,30 @@ class Board:
         assert(dice <= self.dice_max and dice > 0)
         checks = self.get_available_checkers(color)
         
-        res = []
+        res = np.zeros(15, dtype=np.int8) - 2
         dice = -dice if color else dice
         if len(checks) == 0:
-            return []
+            return res
         if checks[-1] == -1:
             dest = dice - 1 if dice > 0 else 24 + dice
-            return [-1] if self.can_move(color, -1, dest) else []
+            if self.can_move(color, -1, dest):
+                res += 1
+            return res
 
+        i = 0
         for n in checks:
             if (self.can_move(color, n, n + dice)):
-                res.append(n)
+                res[i] = n
+                i+=1
+
+        if (color):
+            res[:i] = np.flip(res[:i])
+
+        if i == 0:
+            return res
+        
+        for t in range(i,15):
+            res[t] = res[i-1]
         
         return res
     

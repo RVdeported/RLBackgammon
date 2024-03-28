@@ -1,0 +1,34 @@
+models:
+  - DQN: 
+      algo_name:   "DQN"
+      discr_space: True
+      start_pos:   "LongGammon"
+      timesteps:   100000
+      algo_args:
+        gamma:                0.99
+        learning_rate:        0.001
+        exploration_fraction: 0.9
+  - DDPG: 
+      algo_name:   "DDPG"
+      discr_space: False
+      start_pos:   "LongGammon"
+      timesteps:   100000
+      algo_args:
+        gamma:                0.99
+        learning_rate:        0.001
+  - PPO:
+      algo_name:   "PPO"
+      discr_space: True
+      start_pos:   "LongGammon"
+      timesteps:   100000
+      algo_args:
+        gamma:                0.99
+        learning_rate:        0.001
+  - TD3:
+      algo_name:   "TD3"
+      discr_space: False
+      start_pos:   "Short"
+      timesteps:   100000
+      algo_args:
+        gamma:                0.99
+        learning_rate:        0.001

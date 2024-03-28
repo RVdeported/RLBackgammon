@@ -1,10 +1,19 @@
 import numpy as np
 from dataclasses import dataclass
-from board import StartPos, Board, START_POS, Point
+from src.env.board import StartPos, Board, START_POS, Point
 from copy import deepcopy
+from gym import Env
+from gym.spaces import Discrete, Box
+from enum import Enum
 
-STATE_SIZE = 30
-DICE_IDX   = 26
+
+
+STATE_SIZE   = 64
+DICE_IDX     = 26
+ACTIONS_SIZE = 5
+
+class EvalPlace():
+    pass
 
 @dataclass
 class SARS:
@@ -25,7 +34,7 @@ class Terminate:
     terminate: bool
     won_side:bool = None
 
-class Env:
+class Env(Env):
     def __init__(self):
         pass
 
@@ -38,18 +47,25 @@ class Env:
     def evaluate(self):
         raise Exception("Evaluate is not implemented!")
     
+class ActionSpace(Enum):
+    DISCRETE  = 0
+    CONTINIUS = 1
+
 
 class TestEnv(Env):
     def __init__(
             self, 
-            game_type = StartPos.SHORT,
-            gamma     = 0.99
+            eval_f      = EvalPlace(),
+            game_type   = StartPos.SHORT,
+            action_type = ActionSpace.DISCRETE
     ):
-        self.board = Board(game_type)
-        self.dice = np.zeros(2, np.int8)
-        self.update_dice()
-        self.move_white = True
-        self.curr_pl_done_moves = 0
+        self.game_type = game_type
+        self.action_space      = Discrete(ACTIONS_SIZE) if action_type == ActionSpace.DISCRETE \
+                            else Box(low=0,   high=1,  shape=(ACTIONS_SIZE,))
+        self.observation_space = Box(low=-15, high=15, shape=(STATE_SIZE,))
+        self.reset()
+        self.evaluate = eval_f
+        
 
     def update_dice(self):
         self.dice  = self.throw_dice()
@@ -64,7 +80,7 @@ class TestEnv(Env):
     def get_moves(self) -> Actions:
         return Actions(
             self.board.get_available_moves(
-                self.move_white, self.get_curr_dice()),
+                self.move_white, self.get_curr_dice())[:ACTIONS_SIZE],
                 self.move_white
         )
     
@@ -80,27 +96,28 @@ class TestEnv(Env):
         return self.dice[self.curr_pl_done_moves]
 
     def step(self, action:int) -> SARS:
+        action = np.argmax(np.array(action))
         moves = self.get_moves()
-        state = self.get_state()
-        if (len(moves.actions) == 0):
-            action = -1
+        # print(moves)
+        # state = self.get_state()
         assert(action < len(moves.actions))
         
         if action >=0:
             self.board.make_move(self.move_white, moves.actions[action], self.get_curr_dice())
         new_state = self.get_state()
         reward    = self.evaluate(new_state)
-        switched  = False
+        # switched  = False
         if self.curr_pl_done_moves +1  >= self.dice.shape[0]:
             self.curr_pl_done_moves = 0
             self.update_dice()
             self.move_white = not self.move_white
-            switched = True
+            # switched = True
         else:
             self.curr_pl_done_moves += 1
 
-        return SARS(state, action, reward, new_state, switched, self.is_terminate().terminate)
-    
+        # new obs, reward, terminalte, truncated, info
+        return new_state, reward, self.is_terminate().terminate, {} 
+        
     def is_terminate(self):
         return self.is_terminate_board(self.board)
     
@@ -131,6 +148,17 @@ class TestEnv(Env):
 
         state[DICE_IDX:DICE_IDX + dice.shape[0]] = dice
 
+        idx = np.where(state > 0)[0]
+        for i, n in enumerate(idx[:10]):
+            start = n
+            end   = start - state[DICE_IDX]
+            if end < 0:
+                continue
+            if state[end] == -1:
+                state[30 + i] = 1
+
+        state[-24:] = state[:24] > 0
+
         return state
 
 
@@ -139,25 +167,6 @@ class TestEnv(Env):
         state_ = deepcopy(state)
         state_[:24] = np.flip(-state_[:24], 0)
         return state_
-
-    @staticmethod
-    def evaluate(state:np.array, white = True):
-        assert(state.shape[0] == STATE_SIZE)
-
-        state_ = state
-
-        if not white:
-            state_ = TestEnv.reverse_state(state)
-
-        eval = 0.0
-        for i in range(23):
-            eval += state_[i] * i * 0.2 if state_[i] > 0 else 0.0
-        eval += state_[0] * 10.0 if state_[0] > 0 else 0 # reward for getting own checker to the top
-
-        eval -= state_[25] * 1.0 # negative reward for having own checkers on bar
-        eval += state_[24] * 4.0 # positive reward for having enemy checkers on bar
-
-        return eval
     
     def state2board(self, state) -> Board:
         points = [Point(n > 0, abs(n)) for n in state[:24]]
@@ -202,20 +211,51 @@ class TestEnv(Env):
                         res.append([])
                     res[i+1] += new_res[i]
         
-        assert(len(res) == depth + 1)
-
         return res
     
+    def render(self):
+        self.board.print_board()
+
+    def reset(self):
+        self.board = Board(self.game_type)
+        self.dice = np.zeros(2, np.int8)
+        self.update_dice()
+        self.move_white = True
+        self.curr_pl_done_moves = 0
+
+        return self.get_state()
     
     
 
 
+### EVALUATION CLASSES
+class EvalPlace:
+    def __init__(self, 
+                 fin_rew = 100.0,  # for each checker crossed the finish line
+                 adv_rew = 0.2,    # for each checker * how far from 0 mark
+                 own_bar = 100.0,  # penalty for having own checker on the bar
+                 enem_bar = 100.0, # for each enemy checker on the bar
+                 ):
+        self.fin_rew  = fin_rew
+        self.adv_rew  = adv_rew
+        self.own_bar  = own_bar
+        self.enem_bar = enem_bar
+    def __call__(self, state:np.array, white = True):
+        assert(state.shape[0] == STATE_SIZE)
 
+        state_ = state
 
-        
+        if not white:
+            state_ = TestEnv.reverse_state(state[:24])
 
+        eval = 0.0
+        for i in range(23):
+            eval += state_[i] * i * self.adv_rew if state_[i] > 0 else 0.0
+        eval += state_[0] * self.fin_rew if state_[0] > 0 else 0 # reward for getting own checker to the top
 
+        # negative reward for having own checkers on bar
+        eval -= state_[25] * self.own_bar if white else state_[24] * self.own_bar 
+        # positive reward for having enemy checkers on bar
+        eval += state_[24] * self.enem_bar if white else state_[25] * self.enem_ber 
 
-
-
-
+        return eval
