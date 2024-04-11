@@ -4,9 +4,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 
 
-class StartPos(Enum):
-    LONGGAMMON = 0
-    SHORT      = 1
+
 
 
 
@@ -39,7 +37,10 @@ class Point:
         assert(self.count > 0)
         self.count -= 1
         return
-    
+
+class StartPos(Enum):
+    LONGGAMMON = 0
+    SHORT      = 1
 
 def START_POS(pos:StartPos):
     if (pos == StartPos.LONGGAMMON):

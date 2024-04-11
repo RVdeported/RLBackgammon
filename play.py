@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from train import train
 
-ROUNDS = 5
+ROUNDS = 100
 
 def load_agent(name):
     agent = AgentPolicy()
@@ -38,14 +38,13 @@ if __name__ == "__main__":
     need_train = False
     config = "./configs/to_train.yaml"
     if len(sys.argv) > 1:
-        config = sys.argv[1]
+        need_train = sys.argv[1]
     if (len(sys.argv) > 2):
         config = sys.argv[2]
 
     if need_train:
         train(config)
     
-
 
     models = os.listdir("./models")
     agents = []
