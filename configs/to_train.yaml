@@ -1,34 +1,57 @@
 models:
-  - DQN: 
+  - DQN:
       algo_name:   "DQN"
       discr_space: True
       start_pos:   "LongGammon"
-      timesteps:   100000
+      timesteps:   50000
       algo_args:
         gamma:                0.99
         learning_rate:        0.001
         exploration_fraction: 0.9
-  - DDPG: 
+        batch_size:           32
+  - DDPG:
       algo_name:   "DDPG"
       discr_space: False
       start_pos:   "LongGammon"
-      timesteps:   100000
+      timesteps:   50000
       algo_args:
         gamma:                0.99
         learning_rate:        0.001
   - PPO:
-      algo_name:   "PPO"
+      algo_name: "PPO"
       discr_space: True
-      start_pos:   "LongGammon"
-      timesteps:   100000
+      start_pos: "LongGammon"
+      timesteps: 50000
       algo_args:
-        gamma:                0.99
-        learning_rate:        0.001
+        gamma: 0.99
+        learning_rate: 0.001
+        batch_size:    128
+        n_steps: 2048
+  - PPO:
+      algo_name: "PPO"
+      discr_space: True
+      start_pos: "LongGammon"
+      timesteps: 50000
+      algo_args:
+        gamma: 0.99
+        learning_rate: 0.001
+        batch_size: 32
+        n_steps: 2048
+  - PPO:
+      algo_name: "PPO"
+      discr_space: True
+      start_pos: "LongGammon"
+      timesteps: 50000
+      algo_args:
+        gamma: 0.99
+        learning_rate: 0.001
+        batch_size: 64
+        n_steps: 2048
   - TD3:
       algo_name:   "TD3"
       discr_space: False
       start_pos:   "Short"
-      timesteps:   100000
+      timesteps:   50000
       algo_args:
         gamma:                0.99
         learning_rate:        0.001
