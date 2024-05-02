@@ -3,7 +3,7 @@ from stable_baselines3 import DQN, PPO, DDPG, TD3
 from src.agents.policy import AgentPolicy
 from src.env.env import TestEnv, EvalPlace, StartPos, ActionSpace
 import sys
-
+import os
 
 
 def get_start_pos(pos):
@@ -42,8 +42,16 @@ def train(config_p):
     for item in d["models"]:
         name = list(item.keys())[0]
         v = item[name]
+
+        filename = f"./models/{name}.{v['algo_name']}"
+        for key, value in v['algo_args'].items():
+            filename += f"_{key}={value}"
+
+        if filename in os.listdir('./models'):
+            continue
+
         env = TestEnv(
-            eval_f      = EvalPlace(), 
+            eval_f      = EvalPlace(),
             game_type   = get_start_pos(v["start_pos"]),
             action_type = ActionSpace.DISCRETE if v["discr_space"] else \
                         ActionSpace.CONTINIUS
@@ -52,7 +60,8 @@ def train(config_p):
         agent = AgentPolicy(env, get_valid_algo(v["algo_name"], v["discr_space"]), v["algo_args"])
         agent.model.learn(total_timesteps = v["timesteps"])
         agent.model.config = v
-        agent.model.save(f"./models/{name}.{v['algo_name']}")
+
+        agent.model.save(filename)
 
 
 

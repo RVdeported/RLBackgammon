@@ -1,7 +1,5 @@
 import sys
 import os
-from stable_baselines3.common.base_class import BaseAlgorithm
-from stable_baselines3 import DQN, DDPG
 from train import get_valid_algo
 from src.env.env import *
 from src.agents.policy import AgentPolicy
@@ -14,7 +12,7 @@ ROUNDS = 100
 
 def load_agent(name):
     agent = AgentPolicy()
-    algo = get_valid_algo(name.split('.')[-1], None, False)
+    algo = get_valid_algo(name.split('.')[0], None, False)
     algo = algo.load(f"./models/{name}")
 
     agent.model = algo
@@ -59,9 +57,9 @@ if __name__ == "__main__":
             scores[i, j] = sim([agents[i], agents[j]])
             print(i, j)
 
-    res = pd.DataFrame(scores, columns = [n.split('.')[0] for n in models] + ["random"])
+    res = pd.DataFrame(scores, columns = [''.join(n.split('.')[1:]) for n in models] + ["random"])
     res.index = res.columns
-    print(res)
+    res.to_csv('results.csv')
 
 
 
